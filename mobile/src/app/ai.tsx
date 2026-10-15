@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/context/AppContext';
-import { askAi, getAiAlerts, getAiAnomalies, getAiHistory, getAiRisk, type AiAlerts, type AiAnomaly, type AiHistory, type AiRisk, type AiSource } from '@/services/ai';
+import { askAi, getAiAlerts, getAiFuzzySignal, getAiHistory, getAiRisk, type AiAlerts, type AiFuzzySignal, type AiHistory, type AiRisk, type AiSource } from '@/services/ai';
 import { colors, radius, spacing } from '@/theme';
 
 type Section = 'chat' | 'insights';
@@ -22,11 +22,13 @@ function timeLabel(value: string | null | undefined) {
   return Number.isNaN(date.getTime()) ? 'Không rõ thời gian đo' : date.toLocaleString('vi-VN');
 }
 
-function insightText(risk: AiRisk | null, anomaly: AiAnomaly | null, history: AiHistory | null, alerts: AiAlerts | null) {
+function insightText(risk: AiRisk | null, fuzzy: AiFuzzySignal | null, history: AiHistory | null, alerts: AiAlerts | null) {
   const riskLevel = risk?.level === 'HIGH' ? 'Cao' : risk?.level === 'ELEVATED' ? 'Tăng' : risk?.level === 'LOW' ? 'Thấp' : 'Chưa xác định';
-  const riskDetail = risk?.stale ? 'Bản đo đã cũ, không thể kết luận mức rủi ro hiện tại.' : risk?.source === 'PREVIEW' ? 'Dữ liệu từ firmware thử nghiệm, chưa đánh giá an toàn vận hành.' : risk ? 'Đánh giá theo luật dựa trên telemetry đã nhận; MQ-2 chưa quy đổi sang ppm.' : 'Chưa tải được kết quả.';
-  const anomalyDetail = anomaly?.status === 'READY' ? anomaly.is_anomaly ? 'Model phát hiện giá trị khác baseline đã học.' : 'Model chưa phát hiện khác biệt so với baseline.' : anomaly?.status === 'STALE_DATA' ? 'Bản đo đã cũ, không chấm điểm bất thường.' : 'Chưa có đủ dữ liệu và model để chấm điểm bất thường.';
-  return { riskLevel, riskDetail, anomalyDetail, historyCount: history?.items.length ?? 0, alertCount: alerts?.items.length ?? 0 };
+  const riskDetail = risk?.stale ? 'Bản đo đã cũ, không thể kết luận mức rủi ro hiện tại.' : risk?.source === 'PREVIEW' ? 'Dữ liệu từ firmware thử nghiệm, chưa đánh giá an toàn vận hành.' : risk?.source === 'DEMO' ? 'Dữ liệu JSON ngoại tuyến; đây không phải đánh giá thiết bị đang chạy.' : risk?.level === 'UNKNOWN' ? 'Luật vẫn chạy với dữ liệu LIVE. MQ-2 chưa hiệu chuẩn nên chưa đủ căn cứ kết luận an toàn.' : risk ? 'Đánh giá theo luật từ telemetry LIVE; không cần model học máy. Gas là ADC, chưa phải ppm.' : 'Chưa tải được kết quả.';
+  const fuzzyLevel = fuzzy?.signal_level === 'HIGH' ? 'cao' : fuzzy?.signal_level === 'RISING' ? 'đang tăng' : 'thấp';
+  const fuzzyValue = !fuzzy ? 'Chưa tải được' : fuzzy.status === 'READY' ? `${fuzzy.score}/100` : 'Chưa đánh giá';
+  const fuzzyDetail = !fuzzy ? 'Không lấy được chỉ số fuzzy từ backend.' : fuzzy.status === 'READY' ? `Mức tín hiệu ADC tham khảo: ${fuzzyLevel}. Gas ${fuzzy.gas_adc}/1023. Chưa hiệu chuẩn MQ-2; không phải xác suất cháy hay kết luận an toàn.` : fuzzy.explanation;
+  return { riskLevel, riskDetail, fuzzyValue, fuzzyDetail, historyCount: history?.items.length ?? 0, alertCount: alerts?.items.length ?? 0 };
 }
 
 export default function AiScreen() {
@@ -36,7 +38,7 @@ export default function AiScreen() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [risk, setRisk] = useState<AiRisk | null>(null);
-  const [anomaly, setAnomaly] = useState<AiAnomaly | null>(null);
+  const [fuzzy, setFuzzy] = useState<AiFuzzySignal | null>(null);
   const [history, setHistory] = useState<AiHistory | null>(null);
   const [alerts, setAlerts] = useState<AiAlerts | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
@@ -46,9 +48,9 @@ export default function AiScreen() {
 
   const loadInsights = useCallback(async () => {
     setLoadingInsights(true);
-    const results = await Promise.allSettled([getAiRisk(), getAiAnomalies(), getAiHistory(), getAiAlerts()]);
+    const results = await Promise.allSettled([getAiRisk(), getAiFuzzySignal(), getAiHistory(), getAiAlerts()]);
     if (results[0].status === 'fulfilled') setRisk(results[0].value);
-    if (results[1].status === 'fulfilled') setAnomaly(results[1].value);
+    if (results[1].status === 'fulfilled') setFuzzy(results[1].value);
     if (results[2].status === 'fulfilled') setHistory(results[2].value);
     if (results[3].status === 'fulfilled') setAlerts(results[3].value);
     setOverviewError(results.every(result => result.status === 'rejected') ? 'Không kết nối được API AI. Kiểm tra URL ngrok và máy chạy backend.' : '');
@@ -76,8 +78,8 @@ export default function AiScreen() {
   };
 
   if (!user) return <Redirect href="/login" />;
-  const summary = insightText(risk, anomaly, history, alerts);
-  const source = risk?.source ?? anomaly?.source;
+  const summary = insightText(risk, fuzzy, history, alerts);
+  const source = risk?.source ?? fuzzy?.source;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -113,10 +115,10 @@ export default function AiScreen() {
           <View style={styles.statusRow}><Text style={styles.statusText}>Nguồn: {source ?? 'Chưa kết nối'}{risk?.stale ? ' · DỮ LIỆU CŨ' : ''}</Text><Pressable onPress={() => void loadInsights()} accessibilityLabel="Làm mới phân tích" style={styles.refresh}><Ionicons name="refresh" size={19} color={colors.blue} /></Pressable></View>
           {overviewError ? <Text style={styles.error}>{overviewError}</Text> : null}
           {loadingInsights ? <ActivityIndicator color={colors.blue} /> : null}
-          <View style={styles.card}><View style={styles.cardHead}><Ionicons name="shield-outline" size={19} color={colors.warning} /><Text style={styles.cardTitle}>Risk Assessment</Text></View><Text style={styles.cardValue}>{summary.riskLevel}</Text><Text style={styles.cardDetail}>{summary.riskDetail}</Text><Text style={styles.timestamp}>{timeLabel(risk?.observed_at)}</Text></View>
-          <View style={styles.card}><View style={styles.cardHead}><Ionicons name="analytics-outline" size={19} color={colors.blue} /><Text style={styles.cardTitle}>Phát hiện bất thường</Text></View><Text style={styles.cardValue}>{anomaly?.status === 'READY' ? anomaly.is_anomaly ? 'Cần xem xét' : 'Chưa phát hiện' : 'Chưa có model'}</Text><Text style={styles.cardDetail}>{summary.anomalyDetail}</Text></View>
+          <View style={styles.card}><View style={styles.cardHead}><Ionicons name="analytics-outline" size={19} color={colors.blue} /><Text style={styles.cardTitle}>Tín hiệu gas theo luật mờ</Text></View><Text style={styles.cardValue}>{summary.fuzzyValue}</Text><Text style={styles.cardDetail}>{summary.fuzzyDetail}</Text></View>
+          <View style={styles.card}><View style={styles.cardHead}><Ionicons name="shield-outline" size={19} color={colors.warning} /><Text style={styles.cardTitle}>Đánh giá rủi ro theo luật</Text></View><Text style={styles.cardValue}>{summary.riskLevel}</Text><Text style={styles.cardDetail}>{summary.riskDetail}</Text><Text style={styles.timestamp}>{timeLabel(risk?.observed_at)}</Text></View>
           <View style={styles.card}><View style={styles.cardHead}><Ionicons name="time-outline" size={19} color={colors.success} /><Text style={styles.cardTitle}>Lịch sử AI</Text></View><Text style={styles.cardValue}>{summary.historyCount} bản ghi</Text><Text style={styles.cardDetail}>{history?.status === 'NO_HISTORY' ? 'Chưa có lịch sử đã thu thập cho nguồn dữ liệu này.' : 'Các bản đo gần nhất đã lưu trên backend.'}</Text>{history?.items.map((point, index) => <Text key={`${point.observed_at ?? index}`} style={styles.historyLine}>{timeLabel(point.observed_at)} · Gas {point.gas_adc ?? '--'}/1023</Text>)}</View>
-          <View style={styles.card}><View style={styles.cardHead}><Ionicons name="notifications-outline" size={19} color={colors.danger} /><Text style={styles.cardTitle}>Cảnh báo AI</Text></View><Text style={styles.cardValue}>{summary.alertCount} cảnh báo</Text><Text style={styles.cardDetail}>{alerts?.status === 'NO_HISTORY' ? 'Chưa có lịch sử cảnh báo từ backend.' : 'Danh sách cảnh báo từ backend.'}</Text></View>
+          <View style={styles.card}><View style={styles.cardHead}><Ionicons name="notifications-outline" size={19} color={colors.danger} /><Text style={styles.cardTitle}>Cảnh báo AI</Text></View><Text style={styles.cardValue}>{!alerts ? 'Chưa tải được' : alerts.status === 'NOT_IMPLEMENTED' || alerts.status === 'NO_HISTORY' ? 'Chưa theo dõi' : `${summary.alertCount} cảnh báo`}</Text><Text style={styles.cardDetail}>{!alerts ? 'Không lấy được trạng thái cảnh báo từ backend.' : alerts.status === 'NOT_IMPLEMENTED' || alerts.status === 'NO_HISTORY' ? 'Backend chưa lưu cảnh báo AI; không thể kết luận không có cảnh báo.' : 'Danh sách cảnh báo từ backend.'}</Text></View>
         </ScrollView>}
       </KeyboardAvoidingView>
     </SafeAreaView>

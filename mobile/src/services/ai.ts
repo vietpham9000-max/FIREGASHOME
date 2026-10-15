@@ -11,12 +11,18 @@ export interface AiRisk {
   method: string;
 }
 
-export interface AiAnomaly {
+export interface AiFuzzySignal {
   source: AiSource;
-  status: 'INSUFFICIENT_DATA' | 'STALE_DATA' | 'READY';
-  is_anomaly: boolean | null;
+  observed_at: string | null;
+  stale: boolean;
+  status: 'READY' | 'STALE_DATA' | 'NOT_OPERATIONAL' | 'NO_GAS';
+  method: 'fuzzy_adc_reference';
+  gas_adc: number | null;
   score: number | null;
-  reason: string;
+  signal_level: 'LOW' | 'RISING' | 'HIGH' | null;
+  score_is_probability: false;
+  calibrated: false;
+  explanation: string;
 }
 
 export interface AiChatReply {
@@ -61,7 +67,7 @@ async function request<T>(path: string, body?: object): Promise<T> {
 const device = '/api/v1/devices/firegas01';
 
 export const getAiRisk = () => request<AiRisk>(`${device}/ai/risk`);
-export const getAiAnomalies = () => request<AiAnomaly>(`${device}/ai/anomalies`);
+export const getAiFuzzySignal = () => request<AiFuzzySignal>(`${device}/ai/fuzzy`);
 export const getAiHistory = () => request<AiHistory>(`${device}/history?limit=5`);
 export const getAiAlerts = () => request<AiAlerts>(`${device}/ai/alerts`);
 export const askAi = (question: string) => request<AiChatReply>('/api/v1/ai/chat', { device_id: 'firegas01', question });
