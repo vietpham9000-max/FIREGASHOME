@@ -1,15 +1,82 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/context/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
 export default function LoginScreen() {
-  const { user, signIn, authError, firebaseState, internetOnline } = useApp(); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [showPassword, setShowPassword] = useState(false); const [loading, setLoading] = useState(false); const [validation, setValidation] = useState('');
+  const { user, signIn, authError, firebaseState, internetOnline } = useApp();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [validation, setValidation] = useState('');
+  const scroll = useRef<ScrollView>(null);
+  const passwordInput = useRef<TextInput>(null);
   if (user) return <Redirect href="/(tabs)" />;
-  const submit = async () => { setValidation(''); if (!email.trim() || !password) { setValidation('Vui lòng nhập đầy đủ email và mật khẩu.'); return; } setLoading(true); await signIn(email, password); setLoading(false); };
-  return <SafeAreaView style={styles.safe}><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.page}><View style={styles.brandBlock}><View style={styles.mark}><Ionicons name="flame" size={30} color={colors.white} /></View><Text style={styles.brand}>FireGas</Text><Text style={styles.tagline}>Smart Fire &amp; Gas Monitoring</Text><Text style={styles.intro}>Giám sát môi trường, phát hiện nguy hiểm và hỗ trợ điều khiển thiết bị theo thời gian thực.</Text></View><View style={styles.card}><Text style={styles.kicker}>TRUNG TÂM ĐIỀU KHIỂN</Text><Text style={styles.title}>Đăng nhập hệ thống</Text><Text style={styles.help}>Sử dụng tài khoản Firebase được cấp.</Text><Text style={styles.label}>Email</Text><View style={styles.inputWrap}><Ionicons name="mail-outline" size={19} color={colors.textMuted} /><TextInput value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" placeholder="name@example.com" placeholderTextColor={colors.textMuted} style={styles.input} /></View><Text style={styles.label}>Mật khẩu</Text><View style={styles.inputWrap}><Ionicons name="lock-closed-outline" size={19} color={colors.textMuted} /><TextInput value={password} onChangeText={setPassword} secureTextEntry={!showPassword} autoComplete="current-password" placeholder="Nhập mật khẩu" placeholderTextColor={colors.textMuted} style={styles.input} /><Pressable hitSlop={10} onPress={() => setShowPassword(value => !value)}><Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={21} color={colors.textMuted} /></Pressable></View><Text style={styles.error}>{validation || authError || ''}</Text><Pressable disabled={loading} onPress={submit} style={({ pressed }) => [styles.button, pressed && styles.pressed, loading && styles.disabled]}>{loading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Đăng nhập</Text>}</Pressable><View style={styles.connection}><View style={[styles.dot, { backgroundColor: !internetOnline || firebaseState === 'disconnected' ? colors.danger : firebaseState === 'connected' ? colors.success : colors.warning }]} /><Text style={styles.connectionText}>{!internetOnline ? 'Mất kết nối mạng' : `Firebase: ${firebaseState}`}</Text></View></View></KeyboardAvoidingView></SafeAreaView>;
+
+  const bringInputIntoView = () => setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 250);
+  const submit = async () => {
+    setValidation('');
+    if (!email.trim() || !password) { setValidation('Vui lòng nhập đầy đủ email và mật khẩu.'); return; }
+    setLoading(true);
+    try { await signIn(email.trim(), password); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.page}>
+        <ScrollView ref={scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={styles.brandBlock}>
+            <View style={styles.mark}><Ionicons name="flame" size={30} color={colors.white} /></View>
+            <Text style={styles.brand}>FireGas</Text>
+            <Text style={styles.tagline}>Smart Fire &amp; Gas Monitoring</Text>
+            <Text style={styles.intro}>Giám sát môi trường, phát hiện nguy hiểm và hỗ trợ điều khiển thiết bị theo thời gian thực.</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.kicker}>TRUNG TÂM ĐIỀU KHIỂN</Text>
+            <Text style={styles.title}>Đăng nhập hệ thống</Text>
+            <Text style={styles.help}>Sử dụng tài khoản Firebase được cấp.</Text>
+            <Text style={styles.label}>Email</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="mail-outline" size={19} color={colors.textMuted} />
+              <TextInput value={email} onChangeText={setEmail} onFocus={bringInputIntoView} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" returnKeyType="next" onSubmitEditing={() => passwordInput.current?.focus()} placeholder="name@example.com" placeholderTextColor={colors.textMuted} style={styles.input} />
+            </View>
+            <Text style={styles.label}>Mật khẩu</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="lock-closed-outline" size={19} color={colors.textMuted} />
+              <TextInput ref={passwordInput} value={password} onChangeText={setPassword} onFocus={bringInputIntoView} secureTextEntry={!showPassword} autoComplete="current-password" returnKeyType="done" onSubmitEditing={() => void submit()} placeholder="Nhập mật khẩu" placeholderTextColor={colors.textMuted} style={styles.input} />
+              <Pressable accessibilityLabel={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} hitSlop={10} onPress={() => setShowPassword(value => !value)}><Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={21} color={colors.textMuted} /></Pressable>
+            </View>
+            <Text style={styles.error}>{validation || authError || ''}</Text>
+            <Pressable disabled={loading} onPress={() => void submit()} style={({ pressed }) => [styles.button, pressed && styles.pressed, loading && styles.disabled]}>{loading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Đăng nhập</Text>}</Pressable>
+            <View style={styles.connection}><View style={[styles.dot, { backgroundColor: !internetOnline || firebaseState === 'disconnected' ? colors.danger : firebaseState === 'connected' ? colors.success : colors.warning }]} /><Text style={styles.connectionText}>{!internetOnline ? 'Mất kết nối mạng' : `Firebase: ${firebaseState}`}</Text></View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.background }, page: { flex: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.xl }, brandBlock: { alignItems: 'center' }, mark: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.danger }, brand: { marginTop: 14, color: colors.textPrimary, fontSize: 34, fontWeight: '800', letterSpacing: -1 }, tagline: { marginTop: 6, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }, intro: { maxWidth: 330, marginTop: 10, color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center' }, card: { padding: spacing.xl, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, backgroundColor: colors.surface }, kicker: { color: colors.blue, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 }, title: { marginTop: 7, color: colors.textPrimary, fontSize: 23, fontWeight: '700' }, help: { marginTop: 5, marginBottom: 22, color: colors.textSecondary, fontSize: 12 }, label: { marginBottom: 7, color: colors.textSecondary, fontSize: 11, fontWeight: '700' }, inputWrap: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 16, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.background }, input: { flex: 1, color: colors.textPrimary, fontSize: 14 }, error: { minHeight: 18, color: colors.danger, fontSize: 11 }, button: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 5, borderRadius: radius.md, backgroundColor: '#3486DF' }, pressed: { opacity: .85 }, disabled: { opacity: .6 }, buttonText: { color: colors.white, fontWeight: '800' }, connection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 16 }, dot: { width: 7, height: 7, borderRadius: 4 }, connectionText: { color: colors.textMuted, fontSize: 10, textTransform: 'capitalize' } });
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background }, page: { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.xl },
+  brandBlock: { alignItems: 'center' }, mark: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.danger },
+  brand: { marginTop: 14, color: colors.textPrimary, fontSize: 34, fontWeight: '800', letterSpacing: -1 },
+  tagline: { marginTop: 6, color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  intro: { maxWidth: 330, marginTop: 10, color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  card: { padding: spacing.xl, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, backgroundColor: colors.surface },
+  kicker: { color: colors.blue, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  title: { marginTop: 7, color: colors.textPrimary, fontSize: 23, fontWeight: '700' },
+  help: { marginTop: 5, marginBottom: 22, color: colors.textSecondary, fontSize: 12 },
+  label: { marginBottom: 7, color: colors.textSecondary, fontSize: 11, fontWeight: '700' },
+  inputWrap: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 16, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.background },
+  input: { flex: 1, color: colors.textPrimary, fontSize: 14 }, error: { minHeight: 18, color: colors.danger, fontSize: 11 },
+  button: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 5, borderRadius: radius.md, backgroundColor: '#3486DF' },
+  pressed: { opacity: .85 }, disabled: { opacity: .6 }, buttonText: { color: colors.white, fontWeight: '800' },
+  connection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 16 },
+  dot: { width: 7, height: 7, borderRadius: 4 }, connectionText: { color: colors.textMuted, fontSize: 10, textTransform: 'capitalize' },
+});

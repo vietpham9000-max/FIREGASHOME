@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b111b">
   <meta name="description" content="FireGas Home Safety - Hệ thống giám sát cháy và rò rỉ khí gas">
-  <link rel="manifest" href="./manifest.json"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
+  <link rel="manifest" href="./manifest.json"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./ai.css">
   <title>FireGas Home Safety</title>
 </head>
 <body>
@@ -65,7 +65,17 @@
         <footer><span>FireGas Home Safety System</span><span>Giao diện giám sát · <b id="footer-year"></b></span></footer>
       </div>
     </main>
+    <button id="ai-open" class="ai-bubble" type="button" aria-label="Mở trợ lý FireGas AI" aria-controls="ai-panel" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v11H9l-5 4v-15Z"/><path d="M8 10h8M8 13h5"/></svg><span>AI</span>
+    </button>
+    <section id="ai-panel" class="ai-panel" role="dialog" aria-modal="false" aria-label="FireGas AI" hidden>
+      <header class="ai-header"><div><strong>FireGas AI</strong><small>Trợ lý và phân tích thiết bị</small></div><button id="ai-close" type="button" aria-label="Đóng trợ lý AI">×</button></header>
+      <div class="ai-tabs" role="tablist" aria-label="Chức năng AI"><button id="ai-tab-chat" type="button" class="active" role="tab" aria-selected="true">Trò chuyện</button><button id="ai-tab-insights" type="button" role="tab" aria-selected="false">Phân tích AI</button></div>
+      <div id="ai-chat-view" class="ai-chat-view"><div id="ai-messages" class="ai-messages" role="log" aria-live="polite"></div><div class="ai-questions"><button type="button" data-ai-question="Gas hiện tại bao nhiêu?">Gas hiện tại?</button><button type="button" data-ai-question="Thiết bị đang có cảnh báo không?">Có cảnh báo?</button></div><form id="ai-form" class="ai-form"><input id="ai-question" type="text" maxlength="2000" autocomplete="off" placeholder="Hỏi FireGas AI..." aria-label="Nhập câu hỏi cho AI"><button id="ai-send" type="submit" aria-label="Gửi câu hỏi">➤</button></form></div>
+      <div id="ai-insights-view" class="ai-insights-view" hidden><div class="ai-source-row"><span id="ai-source">Nguồn: chưa kết nối</span><button id="ai-refresh" type="button">Làm mới</button></div><p id="ai-error" class="ai-error" role="status"></p><div id="ai-cards" class="ai-cards"></div></div>
+    </section>
   </section>
   <script type="module" src="./app.js"></script>
+  <script type="module" src="./ai.js"></script>
 </body>
 </html>

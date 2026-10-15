@@ -14,6 +14,7 @@
     },
     "android": {
       "package": "com.firegas.home",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#0B111B",
         "foregroundImage": "./assets/firegas-adaptive.png"

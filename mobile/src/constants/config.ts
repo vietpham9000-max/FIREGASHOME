@@ -4,6 +4,7 @@ export const MAX_HISTORY_POINTS = 120;
 export const TELEMETRY_PATH = 'devices/firegas01/telemetry';
 export const COMMANDS_PATH = 'devices/firegas01/commands';
 export const IS_DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+export const AI_BASE_URL = (process.env.EXPO_PUBLIC_FIREGAS_AI_BASE_URL || 'https://semisweet-conceal-gizzard.ngrok-free.dev').replace(/\/$/, '');
 
 export const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
