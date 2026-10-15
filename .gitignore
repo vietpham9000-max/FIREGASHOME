@@ -1,0 +1,18 @@
+.pio/
+.platformio-core/
+.vscode/
+config.h
+.pio/
+.vscode/
+*.bin
+*.elf
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+
+# Local environment files
+.env
+.env.*
+!.env.example

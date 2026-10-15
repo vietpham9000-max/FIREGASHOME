@@ -1,0 +1,19 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "devices": {
+      "firegas01": {
+        "telemetry": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "commands": {
+          ".read": "auth != null",
+          ".write": "auth != null",
+          ".validate": "newData.hasChildren(['fan','pump','doorOpen','mode','sequence']) && newData.child('fan').isBoolean() && newData.child('pump').isBoolean() && newData.child('doorOpen').isBoolean() && (newData.child('mode').val() == 'AUTO' || newData.child('mode').val() == 'MANUAL') && newData.child('sequence').isNumber()"
+        }
+      }
+    }
+  }
+}

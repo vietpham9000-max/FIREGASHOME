@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "FireGas Home",
+    "slug": "firegas-home",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/firegas-icon.png",
+    "scheme": "firegas",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B111B",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.firegas.home"
+    },
+    "android": {
+      "package": "com.firegas.home",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B111B",
+        "foregroundImage": "./assets/firegas-adaptive.png"
+      },
+      "predictiveBackGestureEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/firegas-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0B111B",
+          "image": "./assets/firegas-adaptive.png",
+          "imageWidth": 180
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

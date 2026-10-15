@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#ef4444">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <title>FireGas Monitor</title>
+</head>
+<body>
+  <main>
+    <header><div><p class="eyebrow">FIREGAS 01</p><h1>HỆ THỐNG GIÁM SÁT CHÁY &amp; RÒ RỈ KHÍ GAS</h1></div><button id="logout" class="secondary hidden">Đăng xuất</button></header>
+    <section id="login" class="panel login">
+      <h2>Đăng nhập vận hành</h2><p>Tài khoản do quản trị viên Firebase cấp.</p>
+      <form id="login-form"><input id="email" type="email" placeholder="Email" required><input id="password" type="password" placeholder="Mật khẩu" required><button>Đăng nhập</button><p id="login-error" class="error"></p></form>
+    </section>
+    <section id="dashboard" class="hidden">
+      <div class="statusbar"><span id="esp-status" class="pill off">ESP32 Offline</span><span id="uno-status" class="pill off">Arduino Offline</span><span id="updated">Chưa có dữ liệu</span></div>
+      <div class="grid metrics">
+        <article><span>Nhiệt độ</span><strong id="temperature">--</strong><small>°C</small></article>
+        <article><span>Độ ẩm</span><strong id="humidity">--</strong><small>%</small></article>
+        <article><span>Khí gas</span><strong id="gas">--</strong><small>/ 1023</small></article>
+        <article><span>Wi-Fi RSSI</span><strong id="rssi">--</strong><small>dBm</small></article>
+      </div>
+      <div class="grid states">
+        <article><span>Lửa</span><strong id="flame">AN TOÀN</strong></article><article><span>Cảnh báo</span><strong id="alarm">TẮT</strong></article>
+        <article><span>Quạt</span><strong id="fan-state">TẮT</strong></article><article><span>Bơm</span><strong id="pump-state">CHƯA KÍCH HOẠT</strong></article>
+        <article><span>Cửa 1</span><strong id="door1">ĐÓNG</strong></article><article><span>Cửa 2</span><strong id="door2">ĐÓNG</strong></article>
+      </div>
+      <section class="panel controls"><h2>Điều khiển</h2><p class="notice">An toàn cục bộ luôn ưu tiên lệnh thủ công.</p>
+        <div class="control-row"><span>Chế độ</span><button id="mode">AUTO</button></div>
+        <div class="control-row"><span>Quạt</span><button id="fan">TẮT</button></div>
+        <div class="control-row"><span>Bơm</span><button id="pump" disabled>CHƯA KÍCH HOẠT</button></div>
+        <div class="control-row"><span>Hai cửa thoát hiểm</span><button id="door">ĐÓNG</button></div>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

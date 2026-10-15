@@ -1,0 +1,14 @@
+{
+  "name": "Hệ thống giám sát cháy và rò rỉ khí gas",
+  "short_name": "FireGas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#ef4444",
+  "icons": [{
+    "src": "/icon.svg",
+    "sizes": "any",
+    "type": "image/svg+xml",
+    "purpose": "any maskable"
+  }]
+}
