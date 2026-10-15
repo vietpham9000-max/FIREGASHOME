@@ -1,4 +1,4 @@
-const CACHE = "firegas-v5";
+const CACHE = "firegas-v6";
 const ASSETS = ["./", "./index.html", "./style.css", "./ai.css", "./app.js", "./ai.js", "./manifest.json", "./icon.svg"];
 const ASSET_PATHS = ASSETS.map(asset => new URL(asset, self.location.href).pathname);
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))));

@@ -21,9 +21,10 @@ const REQUIRED_FIREBASE_CONFIG = ["apiKey", "authDomain", "databaseURL", "projec
 // ============================== STATE ==============================
 const $ = id => document.getElementById(id);
 let firebaseApi = null, auth = null, db = null, telemetryRef = null, commandsRef = null;
-let stopTelemetry = null, stopCommands = null, stopConnection = null;
+let stopTelemetry = null, stopCommands = null, stopConnection = null, stopServerTimeOffset = null;
 let firebaseState = isDemoMode ? "demo" : "connecting";
 let browserOnline = navigator.onLine;
+let serverTimeOffsetMs = 0;
 let telemetry = {};
 let telemetryReceived = false;
 let commandsReceived = false;
@@ -52,8 +53,14 @@ const safetyIcons = {
 function setText(id, value) { const element = $(id); if (element) element.textContent = value; }
 function logOnce(key, message, error) { if (loggedErrors.has(key)) return; loggedErrors.add(key); console.error(message, error?.code || "", error?.message || error || ""); }
 function clearLoggedError(key) { loggedErrors.delete(key); }
-function normalizedTimestamp(value) { const number = Number(value); return Number.isFinite(number) ? (number < 1e12 ? number * 1000 : number) : null; }
-function telemetryAge() { const timestamp = normalizedTimestamp(telemetry.lastSeen); return timestamp ? Math.max(0, Date.now() - timestamp) : null; }
+function normalizedTimestamp(value) {
+  const raw = value && typeof value === "object" && "seconds" in value ? Number(value.seconds) : Number(value);
+  if (Number.isFinite(raw) && raw > 0) return raw < 1e12 ? raw * 1000 : raw;
+  if (typeof value === "string") { const parsed = Date.parse(value); if (Number.isFinite(parsed)) return parsed; }
+  return null;
+}
+function firebaseNow() { return Date.now() + serverTimeOffsetMs; }
+function telemetryAge() { const timestamp = normalizedTimestamp(telemetry.lastSeen); return timestamp ? Math.max(0, firebaseNow() - timestamp) : null; }
 function telemetryState() {
   if (isDemoMode) return "fresh";
   if (!telemetryReceived || !normalizedTimestamp(telemetry.lastSeen)) return "unknown";
@@ -233,6 +240,7 @@ async function initializeFirebase() {
     firebaseApi = { ...appModule, ...authModule, ...databaseModule }; const app = firebaseApi.initializeApp(firebaseConfig); auth = firebaseApi.getAuth(app); db = firebaseApi.getDatabase(app);
     telemetryRef = firebaseApi.ref(db, "devices/firegas01/telemetry"); commandsRef = firebaseApi.ref(db, "devices/firegas01/commands");
     stopConnection = firebaseApi.onValue(firebaseApi.ref(db, ".info/connected"), snapshot => { firebaseState = snapshot.val() === true ? "connected" : browserOnline ? "connecting" : "disconnected"; if (firebaseState === "connected") clearLoggedError("firebase-connect"); render(); }, error => { firebaseState = "disconnected"; logOnce("firebase-connect", "Firebase connection monitor failed:", error); render(); });
+    stopServerTimeOffset = firebaseApi.onValue(firebaseApi.ref(db, ".info/serverTimeOffset"), snapshot => { const offset = Number(snapshot.val()); serverTimeOffsetMs = Number.isFinite(offset) ? offset : 0; clearLoggedError("firebase-time"); render(); }, error => { serverTimeOffsetMs = 0; logOnce("firebase-time", "Firebase server time offset unavailable; using local clock:", error); render(); });
     setText("firebase-status", "Firebase sẵn sàng");
     firebaseApi.onAuthStateChanged(auth, user => { if (user) startLiveMode(user); else stopLiveMode(); }, error => { firebaseState = "disconnected"; setText("firebase-status", "Không xác định được trạng thái đăng nhập"); logOnce("auth-state", "Firebase auth state failed:", error); });
   } catch (error) { firebaseState = "disconnected"; setText("firebase-status", "Firebase không khả dụng · Không chuyển sang dữ liệu Demo"); logOnce("firebase-init", "Firebase initialization failed:", error); render(); }
