@@ -111,25 +111,26 @@ async function loadInsights() {
   cards.replaceChildren();
   cards.append(card('Phân tích AI', 'Đang tải…', 'Đang lấy dữ liệu từ backend.'));
   errorText.textContent = '';
-  const paths = [`${DEVICE}/ai/risk`, `${DEVICE}/ai/anomalies`, `${DEVICE}/history?limit=5`, `${DEVICE}/ai/alerts`];
+  const paths = [`${DEVICE}/ai/risk`, `${DEVICE}/ai/fuzzy`, `${DEVICE}/history?limit=5`, `${DEVICE}/ai/alerts`];
   const results = await Promise.allSettled(paths.map(path => api(path)));
   const data = results.map(result => result.status === 'fulfilled' ? result.value : null);
-  const [risk, anomaly, history, alerts] = data;
+  const [risk, fuzzy, history, alerts] = data;
   if (results.every(result => result.status === 'rejected')) errorText.textContent = 'Không kết nối được API AI. Kiểm tra URL ngrok và máy chạy backend.';
   else if (results.some(result => result.status === 'rejected')) errorText.textContent = 'Một số chức năng AI chưa tải được. Thử làm mới.';
-  const source = risk?.source ?? anomaly?.source ?? history?.source ?? alerts?.source;
+  const source = risk?.source ?? fuzzy?.source ?? history?.source ?? alerts?.source;
   byId('ai-source').textContent = `Nguồn: ${source ?? 'chưa kết nối'}${risk?.stale ? ' · DỮ LIỆU CŨ' : ''}`;
   const level = { HIGH: 'Cao', ELEVATED: 'Tăng', LOW: 'Thấp', UNKNOWN: 'Chưa xác định' }[risk?.level] ?? 'Chưa xác định';
-  const riskDetail = risk?.stale ? 'Bản đo đã cũ. Không thể kết luận mức rủi ro hiện tại.' : source === 'PREVIEW' ? 'Dữ liệu từ firmware thử nghiệm, chưa đánh giá an toàn vận hành.' : risk ? 'Đánh giá theo luật từ telemetry. Gas MQ-2 là ADC 0–1023, chưa phải ppm.' : 'Chưa tải được đánh giá.';
-  const anomalyValue = anomaly?.status === 'READY' ? anomaly.is_anomaly ? 'Cần xem xét' : 'Chưa phát hiện' : 'Chưa có model';
-  const anomalyDetail = anomaly?.status === 'READY' ? anomaly.reason : anomaly?.status === 'STALE_DATA' ? 'Bản đo đã cũ, không chấm điểm bất thường.' : 'Chưa đủ dữ liệu và model để chấm điểm bất thường.';
+  const riskDetail = risk?.stale ? 'Bản đo đã cũ. Không thể kết luận mức rủi ro hiện tại.' : source === 'PREVIEW' ? 'Dữ liệu từ firmware thử nghiệm, chưa đánh giá an toàn vận hành.' : source === 'DEMO' ? 'Dữ liệu JSON ngoại tuyến; đây không phải đánh giá thiết bị đang chạy.' : risk?.level === 'UNKNOWN' ? 'Luật vẫn chạy với dữ liệu LIVE. MQ-2 chưa hiệu chuẩn nên chưa đủ căn cứ kết luận an toàn.' : risk ? 'Đánh giá theo luật từ telemetry LIVE; không cần model học máy. Gas là ADC, chưa phải ppm.' : 'Chưa tải được đánh giá.';
+  const fuzzyLevel = fuzzy?.signal_level === 'HIGH' ? 'cao' : fuzzy?.signal_level === 'RISING' ? 'đang tăng' : 'thấp';
+  const fuzzyValue = !fuzzy ? 'Chưa tải được' : fuzzy.status === 'READY' ? `${fuzzy.score}/100` : 'Chưa đánh giá';
+  const fuzzyDetail = !fuzzy ? 'Không lấy được chỉ số fuzzy từ backend.' : fuzzy.status === 'READY' ? `Mức tín hiệu ADC tham khảo: ${fuzzyLevel}. Gas ${fuzzy.gas_adc}/1023. Chưa hiệu chuẩn MQ-2; không phải xác suất cháy hay kết luận an toàn.` : fuzzy.explanation;
   const historyCount = history?.items?.length ?? 0;
   const alertCount = alerts?.items?.length ?? 0;
   cards.replaceChildren(
-    card('Risk Assessment', level, riskDetail, timeLabel(risk?.observed_at)),
-    card('Phát hiện bất thường', anomalyValue, anomalyDetail),
+    card('Tín hiệu gas theo luật mờ', fuzzyValue, fuzzyDetail),
+    card('Đánh giá rủi ro theo luật', level, riskDetail, timeLabel(risk?.observed_at)),
     card('Lịch sử AI', `${historyCount} bản ghi`, historyCount ? 'Các bản đo gần nhất đã lưu trên backend.' : 'Chưa có lịch sử đã thu thập cho nguồn dữ liệu này.'),
-    card('Cảnh báo AI', `${alertCount} cảnh báo`, alertCount ? 'Danh sách cảnh báo từ backend.' : 'Chưa có lịch sử cảnh báo từ backend.'),
+    card('Cảnh báo AI', !alerts ? 'Chưa tải được' : ['NOT_IMPLEMENTED', 'NO_HISTORY'].includes(alerts.status) ? 'Chưa theo dõi' : `${alertCount} cảnh báo`, !alerts ? 'Không lấy được trạng thái cảnh báo từ backend.' : ['NOT_IMPLEMENTED', 'NO_HISTORY'].includes(alerts.status) ? 'Backend chưa lưu cảnh báo AI; không thể kết luận không có cảnh báo.' : 'Danh sách cảnh báo từ backend.'),
   );
 }
 
